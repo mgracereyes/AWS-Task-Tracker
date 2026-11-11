@@ -1,72 +1,83 @@
-# AWS Task Tracker
-
-A timesheet and task-tracking web app for AWSYS-I. Employees log their daily work by project, task and item. Team leads and managers see effort, check missing hours and lock finished periods.
-
-Only company Google accounts (@awsys-i.com) can sign in.
-
-## Features
-
-- **Sign-in and roles** – Google sign-in; Employee, Team Lead, Manager and Admin
-- **Setup** – projects, tasks and items from templates; Save as template; Public or Private projects
-- **Assignments** – add people to projects with a role and start/end dates
-- **Activity** – Start, Break and End task timer; edit entries; 8-hour daily reminder
-- **Leave** – VL and SL, whole or half day
-- **Dashboards** – employee and team views, manager overview with filters and drill-down
-- **Locks** – lock past dates; unlock requests open a day for 72 hours
-- **Reports** – filter and export to XLSX or CSV (Manager and Admin)
-- **Audit log** – records sign-ins, changes, locks and exports
-
+# AWS Task Tracker – Backend
+ 
+API for the AWS Task Tracker timesheet app. Handles sign-in, roles, projects, time logging, leave, dashboards, locks, reports, export and the audit log. Every request checks the user's role and project membership.
+ 
 ## Tech Stack
-
-| Part | Technology |
-|---|---|
-| Frontend | React |
-| Backend | FastAPI (Python) |
-| Database | PostgreSQL 16 |
-| Sign-in | Google SSO |
-| Server | Nginx (local) or AWS (CloudFront, API Gateway, Lambda, RDS) |
-
+ 
+- Python 3.12, FastAPI
+- PostgreSQL 16
+- Google SSO (@awsys-i.com only)
+- pytest for tests
 ## Project Structure
-
+ 
 ```
-aws-task-tracker/
-├── backend/            FastAPI app and API tests (pytest)
-├── frontend/           React app and UI tests (Vitest)
+aws-task-tracker-backend/
+├── app/
+│   ├── main.py              App start-up and routes
+│   ├── core/                Settings, database connection, security, roles
+│   ├── models/              Database tables
+│   ├── schemas/             Request and response formats
+│   ├── api/                 Endpoints by feature
+│   │   ├── auth.py          Sign-in, session, sign-out
+│   │   ├── setup.py         Projects, tasks, items, templates
+│   │   ├── assignments.py   Project members, role, start/end dates
+│   │   ├── activity.py      Start, Break, End task, edit, corrections
+│   │   ├── leave.py         VL and SL
+│   │   ├── dashboards.py    Dashboards, filters, drill-down
+│   │   ├── locks.py         Locks, unlock requests, overrides
+│   │   ├── notifications.py Notifications
+│   │   ├── reports.py       Reports and XLSX/CSV export
+│   │   └── admin.py         Users, roles, audit log
+│   ├── services/            Business rules (8-hour check, 72-hour expiry, totals)
+│   └── jobs/                Scheduled jobs (reminders, unlock expiry)
 ├── database/
-│   └── schema.sql      Database Schema v1.3 (15 tables)
-├── e2e/                Playwright end-to-end tests
-├── docs/
-│   ├── requirements/   Requirements v1.2 (FR-001 to FR-035)
-│   ├── design/         UI mockups, flowchart, architecture, database diagram
-│   ├── technical/      Technical Documentation v1.3
-│   ├── testing/        Test strategy and test cases (TC-001 to TC-152)
-│   └── planning/       Estimation and WBS
-├── .github/            Pull request and issue templates, CI workflow
+│   └── schema.sql           Database Schema v1.3 (15 tables)
+├── tests/                   pytest tests
+├── .env.example             Settings template
+├── requirements.txt         Python packages
 └── README.md
 ```
-
-## Documents
-
-| Document | File |
-|---|---|
-| Requirements | `docs/requirements/AWS_Task_Tracker_Requirements_v1.2.xlsx` |
-| Technical documentation | `docs/technical/Technical_Documentation_v1.3.xlsx` |
-| Process flowchart | `docs/design/AWS_Task_Tracker_Flowchart_v1.3.png` |
-| System architecture | `docs/design/System_Architecture_Local_v1.3.png`, `System_Architecture_AWS_v1.3.png` |
-| Database schema | `docs/design/Database_Schema_v1.3.md`, `database/schema.sql` |
-| Test strategy | `docs/testing/TEST_STRATEGY.md` |
-| Test cases | `docs/testing/AWS_Task_Tracker_Testing.xlsx` |
-| Plan | `docs/planning/AWS_Task_Tracker_Estimation_and_Planning.xlsx` |
-
-## Getting Started
-
-1. Create the database:
-   ```
-   psql "$DATABASE_URL" -f database/schema.sql
-   ```
-2. Copy `.env.example` to `.env` and fill in the database URL and Google sign-in keys. Never commit `.env`.
-3. Start the backend and frontend (steps to be added when the code is set up).
-
-## Status
-
-Version 1.3 documents are ready. Development starts with Sprint 1 (sign-in and roles).
+ 
+## Setup
+ 
+1. Clone and install:
+```
+   git clone <repo-url> aws-task-tracker-backend
+   cd aws-task-tracker-backend
+   python -m venv .venv
+   source .venv/bin/activate        # Windows: .venv\Scripts\activate
+   pip install -r requirements.txt
+```
+2. Create the database:
+```
+   createdb task_tracker
+   psql task_tracker -f database/schema.sql
+```
+3. Copy `.env.example` to `.env` and fill in:
+```
+   DATABASE_URL=postgresql://user:password@localhost:5432/task_tracker
+   GOOGLE_CLIENT_ID=
+   GOOGLE_CLIENT_SECRET=
+   JWT_SECRET=
+   ADMIN_EMAILS=admin@awsys-i.com
+   ALLOWED_DOMAIN=awsys-i.com
+   FRONTEND_URL=http://localhost:5173
+```
+4. Run the API:
+```
+   uvicorn app.main:app --reload
+```
+   API: http://localhost:8000 · API docs: http://localhost:8000/docs
+ 
+## Tests
+ 
+```
+pytest
+```
+ 
+## Rules
+ 
+- Never commit `.env` or any keys.
+- Check permissions in the API, not only in the frontend.
+- Link each pull request to its FR ID and test case (TC-xxx).
+ 
